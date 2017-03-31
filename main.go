@@ -1,90 +1,94 @@
-package main;
+package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/legolord208/stdutil"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"time"
-	"net/url"
-	"net/http"
-	"io/ioutil"
-	"encoding/json"
 )
 
-const URL = "https://www.cleverbot.com/getreply";
+const URL = "https://www.cleverbot.com/getreply"
 
-var conv1 string;
-var conv2 string;
-var stopped bool;
+var conv1 string
+var conv2 string
+var stopped bool
 
-var turn bool;
-var reply string;
+var turn bool
+var reply string
 
-func main(){
-	fmt.Print("Cleverbot key: ");
-	KEY := stdutil.MustScanTrim();
+func main() {
+	fmt.Print("Cleverbot key: ")
+	KEY := stdutil.MustScanTrim()
 
-	go func(){
-		c := make(chan os.Signal, 1);
-		signal.Notify(c, os.Interrupt);
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
 
-		<-c;
-		stopped = true;
-	}();
+		<-c
+		stopped = true
+	}()
 
 	for i := 0; i < 3; i++ {
-		fmt.Println();
+		fmt.Println()
 	}
 
-	for{
-		if(stopped){ break; }
-		time.Sleep(3 * time.Second);
-		turn = !turn;
-		if(stopped){ break; }
-
-		turnStr := "1";
-		if(!turn){
-			turnStr = "2";
+	for {
+		if stopped {
+			break
 		}
-		fmt.Print("CleverBot " + turnStr + ": ");
+		time.Sleep(3 * time.Second)
+		turn = !turn
+		if stopped {
+			break
+		}
 
-		v := url.Values{};
-		v.Set("key", KEY);
-		v.Set("input", reply);
+		turnStr := "1"
+		if !turn {
+			turnStr = "2"
+		}
+		fmt.Print("CleverBot " + turnStr + ": ")
 
-		if(turn){
-			v.Set("cs", conv1);
+		v := url.Values{}
+		v.Set("key", KEY)
+		v.Set("input", reply)
+
+		if turn {
+			v.Set("cs", conv1)
 		} else {
-			v.Set("cs", conv2);
+			v.Set("cs", conv2)
 		}
 
-		res, err := http.Get(URL + "?" + v.Encode());
-		if(err != nil){
-			stdutil.PrintErr("Could not make request", err);
-			break;
+		res, err := http.Get(URL + "?" + v.Encode())
+		if err != nil {
+			stdutil.PrintErr("Could not make request", err)
+			break
 		}
-		body, err := ioutil.ReadAll(res.Body);
-		res.Body.Close();
-		if(err != nil){
-			stdutil.PrintErr("Could not get data from request", err);
-			break;
-		}
-
-		replyMap := make(map[string]string);
-		err = json.Unmarshal(body, &replyMap);
-		if(err != nil){
-			stdutil.PrintErr("Could not parse JSON", err);
-			break;
+		body, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			stdutil.PrintErr("Could not get data from request", err)
+			break
 		}
 
-		if(turn){
-			conv1 = replyMap["cs"];
+		replyMap := make(map[string]string)
+		err = json.Unmarshal(body, &replyMap)
+		if err != nil {
+			stdutil.PrintErr("Could not parse JSON", err)
+			break
+		}
+
+		if turn {
+			conv1 = replyMap["cs"]
 		} else {
-			conv2 = replyMap["cs"];
+			conv2 = replyMap["cs"]
 		}
 
-		reply = replyMap["output"];
-		fmt.Println(reply);
+		reply = replyMap["output"]
+		fmt.Println(reply)
 	}
 }
